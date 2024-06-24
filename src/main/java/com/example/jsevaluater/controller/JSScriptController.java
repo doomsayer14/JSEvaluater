@@ -1,12 +1,13 @@
 package com.example.jsevaluater.controller;
 
 import com.example.jsevaluater.dto.JSScriptDto;
+import com.example.jsevaluater.dto.JSScriptFilter;
 import com.example.jsevaluater.entity.JSScript;
 import com.example.jsevaluater.entity.enums.ExecutionStatus;
 import com.example.jsevaluater.mapper.JSScriptMapper;
-import com.example.jsevaluater.payload.response.ExecutionResultResponse;
+import com.example.jsevaluater.payload.response.Response;
 import com.example.jsevaluater.service.JSScriptService;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -25,38 +26,45 @@ public class JSScriptController {
     }
 
     @PostMapping("/execute")
-    public ResponseEntity<ExecutionResultResponse> execute(@RequestParam String script) {
-        return jsScriptService.execute(script);
+    @ResponseStatus(HttpStatus.OK)
+    public JSScriptDto execute(@RequestParam String script) {
+        JSScript jsScript = jsScriptService.execute(script);
+        return jsScriptMapper.jsScriptToDto(jsScript);
     }
 
     @PostMapping("/scheduleExecution")
-    public ResponseEntity<ExecutionResultResponse> scheduleExecution(@RequestParam String script,
-                                                                     @RequestParam LocalDateTime executionStartTime) {
-        return jsScriptService.scheduleExecution(script, executionStartTime);
+    @ResponseStatus(HttpStatus.CREATED)
+    public JSScriptDto scheduleExecution(@RequestParam String script,
+                                         @RequestParam LocalDateTime executionStartTime) {
+        JSScript jsScript = jsScriptService.scheduleExecution(script, executionStartTime);
+        return jsScriptMapper.jsScriptToDto(jsScript);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<JSScriptDto> get(@PathVariable String id) {
+    @ResponseStatus(HttpStatus.OK)
+    public JSScriptDto getJSScript(@PathVariable String id) {
         JSScript jsScript = jsScriptService.getJsScriptById(Long.parseLong(id));
-        JSScriptDto jsScriptDto = jsScriptMapper.jsScriptToDto(jsScript);
-        return ResponseEntity.ok(jsScriptDto);
+        return jsScriptMapper.jsScriptToDto(jsScript);
     }
 
     @GetMapping("/")
-    public ResponseEntity<List<JSScriptDto>> getAll(@RequestParam ExecutionStatus executionStatus,
-                                                    @RequestParam String orderBy) {
-        List<JSScriptDto> jsScriptDtoList = jsScriptService.getAllJSScripts(executionStatus, orderBy);
-        return ResponseEntity.ok(jsScriptDtoList);
+    @ResponseStatus(HttpStatus.OK)
+    public List<JSScriptDto> getAllJSScripts(@RequestBody JSScriptFilter jsScriptFilter) {
+        return jsScriptService.getAllJSScripts(jsScriptFilter)
+                .stream()
+                .map(jsScriptMapper::jsScriptToDto)
+                .toList();
     }
 
     @PostMapping("/stop/{id}")
-    public ResponseEntity<ExecutionResultResponse> stopScript(@PathVariable String id) {
+    @ResponseStatus(HttpStatus.OK)
+    public Response stopScript(@PathVariable String id) {
         return jsScriptService.stopScript(Long.parseLong(id));
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<JSScriptDto> removeScript(@PathVariable String id,
-                                                    @RequestParam ExecutionStatus executionStatus) {
-        return ResponseEntity.noContent(jsScriptService.delete(id, executionStatus));
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void removeScript(@PathVariable String id) {
+        jsScriptService.delete(id);
     }
 }
